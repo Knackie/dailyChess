@@ -77,6 +77,12 @@ body {
   gap: 16px;
 }
 
+/* La règle [hidden] de la feuille UA a la même spécificité que .panel : on la renforce ici
+   pour qu'un panneau masqué (changement d'onglet) soit bien retiré du rendu et non cliquable. */
+.panel[hidden] {
+  display: none;
+}
+
 .mode-hint {
   margin: 0;
   color: #9aa4b2;

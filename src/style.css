@@ -45,51 +45,6 @@ body {
   font-size: 0.9rem;
 }
 
-.tabs {
-  display: flex;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 4px;
-  border-radius: 10px;
-}
-
-.tab {
-  font-size: 0.95rem;
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: #9aa4b2;
-  cursor: pointer;
-  font-weight: 600;
-}
-
-.tab.active {
-  background: #7fc8ff;
-  color: #0d1117;
-}
-
-.panel {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-}
-
-/* La règle [hidden] de la feuille UA a la même spécificité que .panel : on la renforce ici
-   pour qu'un panneau masqué (changement d'onglet) soit bien retiré du rendu et non cliquable. */
-.panel[hidden] {
-  display: none;
-}
-
-.mode-hint {
-  margin: 0;
-  color: #9aa4b2;
-  font-size: 0.85rem;
-  text-align: center;
-}
-
 .status {
   font-size: 1.1rem;
   min-height: 1.4em;
@@ -196,14 +151,6 @@ body {
 
 .square.dark .coord {
   color: #e8d9bd;
-}
-
-.board-blind .square.light {
-  background: #cdbd9c;
-}
-
-.board-blind .square.dark {
-  background: #6e4f30;
 }
 
 .promotion-overlay {

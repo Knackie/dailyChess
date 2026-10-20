@@ -1,10 +1,7 @@
-// Persistance locale des résultats (pas de backend : tout vit dans le navigateur).
-
-export type GameMode = "speedrun" | "blindfold";
+// Persistance locale du résultat du jour (pas de backend : tout vit dans le navigateur).
 
 export interface DailyResult {
   dayKey: string;
-  mode: GameMode;
   puzzleNumber: number;
   timeMs: number;
   attempts: number;
@@ -12,12 +9,8 @@ export interface DailyResult {
 
 const STORAGE_PREFIX = "echec-du-jour:result:";
 
-function storageKey(mode: GameMode, dayKey: string): string {
-  return `${STORAGE_PREFIX}${mode}:${dayKey}`;
-}
-
-export function loadResult(mode: GameMode, dayKey: string): DailyResult | null {
-  const raw = localStorage.getItem(storageKey(mode, dayKey));
+export function loadResult(dayKey: string): DailyResult | null {
+  const raw = localStorage.getItem(STORAGE_PREFIX + dayKey);
   if (!raw) return null;
   try {
     return JSON.parse(raw) as DailyResult;
@@ -27,5 +20,5 @@ export function loadResult(mode: GameMode, dayKey: string): DailyResult | null {
 }
 
 export function saveResult(result: DailyResult): void {
-  localStorage.setItem(storageKey(result.mode, result.dayKey), JSON.stringify(result));
+  localStorage.setItem(STORAGE_PREFIX + result.dayKey, JSON.stringify(result));
 }

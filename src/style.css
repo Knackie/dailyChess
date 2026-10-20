@@ -1,0 +1,175 @@
+:root {
+  color-scheme: dark;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  background: radial-gradient(circle at top, #1e2530 0%, #0d1117 60%);
+  color: #f0f0f0;
+  padding: 24px 12px;
+}
+
+.app {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.header {
+  text-align: center;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.day-number {
+  color: #7fc8ff;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #9aa4b2;
+  font-size: 0.9rem;
+}
+
+.status {
+  font-size: 1.1rem;
+  min-height: 1.4em;
+  text-align: center;
+}
+
+.status.shake {
+  animation: shake 0.3s;
+  color: #ff6b6b;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-6px);
+  }
+  75% {
+    transform: translateX(6px);
+  }
+}
+
+.board-wrapper {
+  width: 100%;
+  max-width: 420px;
+  aspect-ratio: 1 / 1;
+  position: relative;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.square {
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: min(8vw, 2.6rem);
+  cursor: pointer;
+  padding: 0;
+  position: relative;
+  line-height: 1;
+}
+
+.square.light {
+  background: #e8d9bd;
+}
+
+.square.dark {
+  background: #8a6744;
+}
+
+.square.piece-white {
+  color: #fff;
+  text-shadow: 0 0 2px #000, 0 0 2px #000;
+}
+
+.square.piece-black {
+  color: #111;
+}
+
+.square.selected {
+  outline: 3px solid #7fc8ff;
+  outline-offset: -3px;
+}
+
+.square.legal-target::after {
+  content: "";
+  position: absolute;
+  width: 28%;
+  height: 28%;
+  border-radius: 50%;
+  background: rgba(127, 200, 255, 0.75);
+}
+
+.promotion-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10;
+}
+
+.promotion-choice {
+  font-size: 2rem;
+  background: #1e2530;
+  color: #fff;
+  border: 2px solid #7fc8ff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.result {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-button {
+  font-size: 1rem;
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  background: #7fc8ff;
+  color: #0d1117;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.share-button:hover {
+  background: #9dd6ff;
+}

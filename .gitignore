@@ -11,6 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+
+# Worker (Cloudflare)
+worker/node_modules
+worker/.wrangler
+worker/*.log
 
 # Editor directories and files
 .vscode/*

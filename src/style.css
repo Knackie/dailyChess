@@ -45,6 +45,113 @@ body {
   font-size: 0.9rem;
 }
 
+.turn-indicator {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #9aa4b2;
+  text-align: center;
+}
+
+.start-screen {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+}
+
+.pseudo-label {
+  font-size: 0.85rem;
+  color: #9aa4b2;
+}
+
+.pseudo-input {
+  width: 100%;
+  max-width: 260px;
+  font-size: 1rem;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #0d1117;
+  color: #f0f0f0;
+  text-align: center;
+}
+
+.pseudo-error {
+  margin: 0;
+  color: #ff6b6b;
+  font-size: 0.8rem;
+}
+
+.start-button {
+  font-size: 1.1rem;
+  padding: 12px 28px;
+  border-radius: 10px;
+  border: none;
+  background: #7fc8ff;
+  color: #0d1117;
+  cursor: pointer;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.start-button:hover {
+  background: #9dd6ff;
+}
+
+.game-screen {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.leaderboard {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.leaderboard h2 {
+  margin: 0 0 10px;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.leaderboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.leaderboard-entry {
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.leaderboard-entry.me {
+  background: rgba(127, 200, 255, 0.2);
+  font-weight: 700;
+}
+
+.player-stats {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  color: #9aa4b2;
+  text-align: center;
+}
+
 .status {
   font-size: 1.1rem;
   min-height: 1.4em;
@@ -97,6 +204,7 @@ body {
   padding: 0;
   position: relative;
   line-height: 1;
+  touch-action: none;
 }
 
 .square.light {
@@ -109,6 +217,19 @@ body {
 
 .piece-glyph {
   pointer-events: none;
+}
+
+.piece-glyph.piece-dragging {
+  opacity: 0;
+}
+
+.piece-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 50;
 }
 
 .piece-glyph.piece-white {

@@ -22,3 +22,13 @@ export function loadResult(dayKey: string): DailyResult | null {
 export function saveResult(result: DailyResult): void {
   localStorage.setItem(STORAGE_PREFIX + result.dayKey, JSON.stringify(result));
 }
+
+const PSEUDO_KEY = "echec-du-jour:pseudo";
+
+export function loadPseudo(): string | null {
+  return localStorage.getItem(PSEUDO_KEY);
+}
+
+export function savePseudo(pseudo: string): void {
+  localStorage.setItem(PSEUDO_KEY, pseudo);
+}

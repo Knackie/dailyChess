@@ -1,0 +1,18 @@
+# Déploiement sur Cloudflare Workers + D1 (gratuit).
+#   npx wrangler login
+#   npx wrangler d1 create echec-du-jour      → recopier le database_id ci-dessous
+#   npm run db:init:remote
+#   npm run deploy
+name = "echec-du-jour-api"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "echec-du-jour"
+database_id = "5b849d80-9049-4af8-9230-b409f0293cbf"
+
+[vars]
+# Origine autorisée à appeler l'API. L'API est publique (lecture/écriture de scores, sans
+# authentification ni cookie), "*" est donc suffisant et simplifie les tests locaux.
+ALLOW_ORIGIN = "*"

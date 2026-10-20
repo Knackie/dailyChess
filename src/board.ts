@@ -23,7 +23,13 @@ interface BoardOptions {
   onAttempt: (move: MoveAttempt) => MoveResult;
 }
 
-/** Échiquier interactif en "point and click" : sélectionner une pièce puis sa case d'arrivée. */
+interface DragState {
+  pointerId: number;
+  fromSquare: Square;
+  ghost: HTMLElement;
+}
+
+/** Échiquier interactif : cliquer une pièce puis sa case d'arrivée, ou glisser-déposer la pièce directement. */
 export class Board {
   private readonly container: HTMLElement;
   private readonly chess: Chess;
@@ -32,6 +38,7 @@ export class Board {
   private selected: Square | null = null;
   private legalTargets: Map<Square, boolean> = new Map(); // true si la case nécessite une promotion
   private locked = false;
+  private dragState: DragState | null = null;
 
   constructor(options: BoardOptions) {
     this.container = options.container;
@@ -72,34 +79,114 @@ export class Board {
     this.render();
   }
 
-  private handleSquareClick(square: Square): void {
+  private attemptMove(from: Square, to: Square): void {
+    const needsPromotion = this.legalTargets.get(to);
+    this.selected = null;
+    this.legalTargets.clear();
+    if (needsPromotion) {
+      this.promptPromotion((promotion) => {
+        this.onAttempt({ from, to, promotion });
+        this.render();
+      });
+      return;
+    }
+    this.onAttempt({ from, to });
+    this.render();
+  }
+
+  private handlePointerDown(event: PointerEvent, square: Square): void {
     if (this.locked) return;
 
-    if (this.selected && this.legalTargets.has(square)) {
-      const needsPromotion = this.legalTargets.get(square);
-      const from = this.selected;
-      this.selected = null;
-      this.legalTargets.clear();
-      if (needsPromotion) {
-        this.promptPromotion((promotion) => {
-          this.onAttempt({ from, to: square, promotion });
-          this.render();
-        });
-        return;
-      }
-      this.onAttempt({ from, to: square });
-      this.render();
+    // Case déjà sélectionnée et cible légale : un simple clic/tap joue le coup sans glisser.
+    if (this.selected && square !== this.selected && this.legalTargets.has(square)) {
+      event.preventDefault();
+      this.attemptMove(this.selected, square);
       return;
     }
 
     const piece = this.chess.get(square);
     if (piece && piece.color === this.chess.turn()) {
+      event.preventDefault();
       this.select(square);
+      this.startDrag(event, square);
     } else {
       this.selected = null;
       this.legalTargets.clear();
       this.render();
     }
+  }
+
+  private startDrag(event: PointerEvent, square: Square): void {
+    const squareEl = this.container.querySelector(`[data-square="${square}"]`) as HTMLElement | null;
+    const pieceEl = squareEl?.querySelector(".piece-glyph") as HTMLElement | null;
+    if (!squareEl || !pieceEl) return;
+
+    const ghost = document.createElement("span");
+    ghost.className = pieceEl.className + " piece-ghost";
+    ghost.textContent = pieceEl.textContent;
+    ghost.style.fontSize = getComputedStyle(squareEl).fontSize;
+    document.body.appendChild(ghost);
+    pieceEl.classList.add("piece-dragging");
+
+    this.dragState = { pointerId: event.pointerId, fromSquare: square, ghost };
+    this.positionGhost(event.clientX, event.clientY);
+
+    const onMove = (e: PointerEvent) => {
+      if (!this.dragState || e.pointerId !== this.dragState.pointerId) return;
+      this.positionGhost(e.clientX, e.clientY);
+    };
+    const onUp = (e: PointerEvent) => {
+      if (!this.dragState || e.pointerId !== this.dragState.pointerId) return;
+      cleanupListeners();
+      this.endDrag(e.clientX, e.clientY);
+    };
+    const onCancel = (e: PointerEvent) => {
+      if (!this.dragState || e.pointerId !== this.dragState.pointerId) return;
+      cleanupListeners();
+      this.cancelDrag();
+    };
+    const cleanupListeners = () => {
+      document.removeEventListener("pointermove", onMove);
+      document.removeEventListener("pointerup", onUp);
+      document.removeEventListener("pointercancel", onCancel);
+    };
+    document.addEventListener("pointermove", onMove);
+    document.addEventListener("pointerup", onUp);
+    document.addEventListener("pointercancel", onCancel);
+  }
+
+  private positionGhost(x: number, y: number): void {
+    if (!this.dragState) return;
+    this.dragState.ghost.style.left = `${x}px`;
+    this.dragState.ghost.style.top = `${y}px`;
+  }
+
+  private endDrag(x: number, y: number): void {
+    if (!this.dragState) return;
+    const { fromSquare } = this.dragState;
+    const targetEl = (document.elementFromPoint(x, y) as HTMLElement | null)?.closest(".square") as
+      | HTMLElement
+      | null;
+    const targetSquare = targetEl?.dataset.square as Square | undefined;
+    this.cleanupDrag();
+
+    if (targetSquare && targetSquare !== fromSquare && this.legalTargets.has(targetSquare)) {
+      this.attemptMove(fromSquare, targetSquare);
+    } else {
+      // Case invalide ou retour sur la case d'origine : on garde juste la sélection active.
+      this.render();
+    }
+  }
+
+  private cancelDrag(): void {
+    this.cleanupDrag();
+    this.render();
+  }
+
+  private cleanupDrag(): void {
+    if (!this.dragState) return;
+    this.dragState.ghost.remove();
+    this.dragState = null;
   }
 
   private promptPromotion(onChoose: (piece: "q" | "r" | "b" | "n") => void): void {
@@ -159,7 +246,7 @@ export class Board {
         squareEl.appendChild(coord);
       }
 
-      squareEl.addEventListener("click", () => this.handleSquareClick(square));
+      squareEl.addEventListener("pointerdown", (event) => this.handlePointerDown(event, square));
       this.container.appendChild(squareEl);
     });
   }

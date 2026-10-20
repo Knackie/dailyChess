@@ -21,14 +21,22 @@ interface BoardOptions {
   chess: Chess;
   orientation: Color; // couleur affichée en bas de l'échiquier
   onAttempt: (move: MoveAttempt) => MoveResult;
+  /** Mode aveugle : pièces et coups légaux masqués, sélection libre case par case. */
+  blind?: boolean;
 }
 
-/** Échiquier interactif en "point and click" : sélectionner une pièce puis sa case d'arrivée. */
+/**
+ * Échiquier interactif en "point and click".
+ * - Mode normal : sélectionner une pièce (coups légaux surlignés) puis sa case d'arrivée.
+ * - Mode aveugle : les pièces sont invisibles et aucun indice n'est donné ; on clique
+ *   librement une case de départ puis une case d'arrivée, à l'aveugle (repères a-h/1-8 affichés).
+ */
 export class Board {
   private readonly container: HTMLElement;
   private readonly chess: Chess;
   private readonly orientation: Color;
   private readonly onAttempt: (move: MoveAttempt) => MoveResult;
+  private blind: boolean;
   private selected: Square | null = null;
   private legalTargets: Map<Square, boolean> = new Map(); // true si la case nécessite une promotion
   private locked = false;
@@ -38,11 +46,20 @@ export class Board {
     this.chess = options.chess;
     this.orientation = options.orientation;
     this.onAttempt = options.onAttempt;
+    this.blind = options.blind ?? false;
     this.render();
   }
 
   lock(): void {
     this.locked = true;
+    this.selected = null;
+    this.legalTargets.clear();
+    this.render();
+  }
+
+  /** Active ou désactive le masquage des pièces (utilisé par le mode Blindfold). */
+  setBlind(blind: boolean): void {
+    this.blind = blind;
     this.selected = null;
     this.legalTargets.clear();
     this.render();
@@ -75,6 +92,11 @@ export class Board {
   private handleSquareClick(square: Square): void {
     if (this.locked) return;
 
+    if (this.blind) {
+      this.handleBlindSquareClick(square);
+      return;
+    }
+
     if (this.selected && this.legalTargets.has(square)) {
       const needsPromotion = this.legalTargets.get(square);
       const from = this.selected;
@@ -102,6 +124,29 @@ export class Board {
     }
   }
 
+  /** En mode aveugle, aucune case n'est filtrée : tout coup (même illégal) est tenté. */
+  private handleBlindSquareClick(square: Square): void {
+    if (this.selected === null) {
+      this.selected = square;
+      this.render();
+      return;
+    }
+    if (this.selected === square) {
+      // Un second clic sur la même case annule la sélection.
+      this.selected = null;
+      this.render();
+      return;
+    }
+
+    const from = this.selected;
+    this.selected = null;
+    this.render();
+
+    // On ne connaît pas la pièce visible en aveugle : on tente toujours en dame par défaut.
+    this.onAttempt({ from, to: square, promotion: "q" });
+    this.render();
+  }
+
   private promptPromotion(onChoose: (piece: "q" | "r" | "b" | "n") => void): void {
     const overlay = document.createElement("div");
     overlay.className = "promotion-overlay";
@@ -127,26 +172,46 @@ export class Board {
   render(): void {
     this.container.innerHTML = "";
     this.container.classList.add("board");
-    for (const square of this.squareOrder()) {
+    if (this.blind) this.container.classList.add("board-blind");
+    else this.container.classList.remove("board-blind");
+
+    const order = this.squareOrder();
+    order.forEach((square, index) => {
       const file = square.charCodeAt(0) - "a".charCodeAt(0);
       const rank = Number(square[1]);
       const isLight = (file + rank) % 2 === 1;
+      const row = Math.floor(index / 8);
+      const col = index % 8;
 
       const squareEl = document.createElement("button");
       squareEl.type = "button";
       squareEl.className = `square ${isLight ? "light" : "dark"}`;
       squareEl.dataset.square = square;
       if (this.selected === square) squareEl.classList.add("selected");
-      if (this.legalTargets.has(square)) squareEl.classList.add("legal-target");
+      if (!this.blind && this.legalTargets.has(square)) {
+        squareEl.classList.add("legal-target");
+      }
 
-      const piece = this.chess.get(square);
-      if (piece) {
-        squareEl.textContent = PIECE_GLYPHS[piece.color][piece.type];
-        squareEl.classList.add(piece.color === "w" ? "piece-white" : "piece-black");
+      if (!this.blind) {
+        const piece = this.chess.get(square);
+        if (piece) {
+          const glyph = document.createElement("span");
+          glyph.className = `piece-glyph ${piece.color === "w" ? "piece-white" : "piece-black"}`;
+          glyph.textContent = PIECE_GLYPHS[piece.color][piece.type];
+          squareEl.appendChild(glyph);
+        }
+      }
+
+      // Repères de coordonnées : fichiers (a-h) sur la dernière rangée, rangs (1-8) sur la première colonne.
+      if (row === 7 || col === 0) {
+        const coord = document.createElement("span");
+        coord.className = "coord";
+        coord.textContent = row === 7 ? square[0] : square[1];
+        squareEl.appendChild(coord);
       }
 
       squareEl.addEventListener("click", () => this.handleSquareClick(square));
       this.container.appendChild(squareEl);
-    }
+    });
   }
 }

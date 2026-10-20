@@ -6,10 +6,20 @@ Inspiré du concept « défi quotidien identique pour tout le monde, résultat p
 
 ## Comment ça marche
 
-- Chaque jour correspond à une position de mat en 1 coup différente, tirée d'une liste fixe de 200 positions et choisie de façon déterministe à partir de la date (même puzzle pour tout le monde, pas de serveur nécessaire).
-- Cliquez sur une pièce de la couleur au trait puis sur une case surlignée pour jouer votre coup.
-- Un coup légal qui ne mate pas coûte une pénalité de 3 secondes et le coup est annulé.
-- Une fois le mat trouvé, votre temps et votre nombre d'essais sont sauvegardés localement (`localStorage`) et un bouton permet de copier un résumé partageable.
+Chaque jour correspond à la même position de mat en 1 coup pour tout le monde, tirée d'une liste fixe de
+200 positions et choisie de façon déterministe à partir de la date (pas de serveur nécessaire). Deux modes
+de jeu, indépendants l'un de l'autre :
+
+- **⚡ Speedrun** : le plateau est visible dès le départ. Cliquez sur une pièce de la couleur au trait puis
+  sur une case surlignée pour jouer votre coup. Un coup légal qui ne mate pas coûte une pénalité de
+  3 secondes et le coup est annulé.
+- **🙈 Blindfold** : la position est affichée 5 secondes pour mémorisation, puis les pièces disparaissent
+  (seuls les repères de colonnes/rangées restent visibles). Il faut alors rejouer le mat de mémoire, en
+  cliquant une case de départ puis une case d'arrivée, sans aucun indice de coup légal. Chaque tentative
+  manquée (coup illégal ou légal mais non matant) coûte aussi une pénalité de 3 secondes.
+
+Une fois le mat trouvé, dans chaque mode, le temps et le nombre d'essais sont sauvegardés localement
+(`localStorage`, par mode et par jour) et un bouton permet de copier un résumé partageable.
 
 ## Développement
 

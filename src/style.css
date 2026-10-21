@@ -53,6 +53,29 @@ body {
   text-align: center;
 }
 
+.difficulty-badge {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.difficulty-elo {
+  font-weight: 400;
+  color: #9aa4b2;
+}
+
+.difficulty-badge.difficulty-1 {
+  color: #7fe6a1;
+}
+
+.difficulty-badge.difficulty-2 {
+  color: #ffc96b;
+}
+
+.difficulty-badge.difficulty-3 {
+  color: #ff8b8b;
+}
+
 .start-screen {
   width: 100%;
   display: flex;

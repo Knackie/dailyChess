@@ -5,6 +5,7 @@ import { loadResult, saveResult, loadPseudo, savePseudo, type DailyResult } from
 import { Board, type MoveAttempt } from "./board";
 import { Timer, formatMs } from "./timer";
 import { hasBackend, submitScore, fetchLeaderboard, fetchStats, type LeaderboardEntry } from "./api";
+import { estimateDifficulty } from "./difficulty";
 import "./style.css";
 
 interface Puzzle {
@@ -26,6 +27,8 @@ const dayKey = todayKey(today);
 const dayNum = dayNumber(today);
 const puzzleIndex = puzzleIndexForDay(dayNum, puzzles.length);
 const puzzle = puzzles[puzzleIndex];
+const difficulty = estimateDifficulty(puzzle.fen, puzzle.solutions);
+const difficultyStars = "⭐".repeat(difficulty.stars);
 
 app.innerHTML = `
   <main class="app">
@@ -36,6 +39,7 @@ app.innerHTML = `
 
     <section class="start-screen" id="start-screen">
       <p class="turn-indicator">${puzzle.toMove === "white" ? "Trait aux Blancs ⚪" : "Trait aux Noirs ⚫"}</p>
+      <p class="difficulty-badge difficulty-${difficulty.stars}">Difficulté : ${difficulty.label} ${difficultyStars} <span class="difficulty-elo">(≈ ${difficulty.elo} Elo)</span></p>
       <label class="pseudo-label" for="pseudo-input">Ton pseudo (pour le classement)</label>
       <input id="pseudo-input" class="pseudo-input" type="text" maxlength="20" placeholder="Ex : Kasparov42" />
       <p class="pseudo-error" id="pseudo-error" hidden>Pseudo invalide (1 à 20 caractères, lettres/chiffres).</p>

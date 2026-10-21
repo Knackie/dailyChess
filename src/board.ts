@@ -3,8 +3,12 @@ import type { Chess, Square, PieceSymbol, Color } from "chess.js";
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
+// On utilise les glyphes "pleins" pour les deux couleurs : les glyphes Unicode
+// "blancs" (♔♕♖♗♘♙) sont de simples contours creux dans beaucoup de polices,
+// ce qui rend les pièces blanches quasi transparentes. On préfère donc colorer
+// en CSS les mêmes glyphes pleins plutôt que de changer de famille de symbole.
 const PIECE_GLYPHS: Record<Color, Record<PieceSymbol, string>> = {
-  w: { p: "♙", n: "♘", b: "♗", r: "♖", q: "♕", k: "♔" },
+  w: { p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚" },
   b: { p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚" },
 };
 

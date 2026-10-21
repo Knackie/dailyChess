@@ -234,11 +234,21 @@ body {
 
 .piece-glyph.piece-white {
   color: #fff;
-  text-shadow: 0 0 2px #000, 0 0 2px #000;
+  text-shadow:
+    -1.5px -1.5px 0 #000,
+    1.5px -1.5px 0 #000,
+    -1.5px 1.5px 0 #000,
+    1.5px 1.5px 0 #000,
+    0 0 3px rgba(0, 0, 0, 0.6);
 }
 
 .piece-glyph.piece-black {
   color: #111;
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.4),
+    1px -1px 0 rgba(255, 255, 255, 0.4),
+    -1px 1px 0 rgba(255, 255, 255, 0.4),
+    1px 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 .square.selected {

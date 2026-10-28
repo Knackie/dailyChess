@@ -7,6 +7,15 @@
   box-sizing: border-box;
 }
 
+/* L'attribut HTML `hidden` doit toujours l'emporter, y compris sur les
+   éléments qui définissent leur propre `display` (flex, etc.) : sans cette
+   règle, un élément masqué (ex. l'écran de démarrage une fois la partie
+   lancée) reste visible et cliquable, ce qui permettait de relancer le
+   chronomètre à zéro en recliquant sur "Démarrer". */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   min-height: 100vh;

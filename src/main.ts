@@ -229,8 +229,16 @@ function startGame(pseudo: string | null): void {
   timer.start();
 }
 
+let gameStarted = false;
+
 startButton.addEventListener("click", () => {
+  // Garde-fou en plus du CSS : même si l'écran de démarrage redevenait
+  // visible/cliquable par erreur, on ignore tout second clic pour empêcher
+  // de relancer le chronomètre à zéro après avoir déjà vu le puzzle.
+  if (gameStarted) return;
+
   if (!hasBackend) {
+    gameStarted = true;
     startGame(null);
     return;
   }
@@ -241,5 +249,6 @@ startButton.addEventListener("click", () => {
   }
   pseudoErrorEl.hidden = true;
   savePseudo(pseudo);
+  gameStarted = true;
   startGame(pseudo);
 });

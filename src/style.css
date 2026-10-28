@@ -150,6 +150,37 @@ body {
   padding: 16px;
 }
 
+.leaderboard-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.leaderboard-tab {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: #9aa4b2;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.leaderboard-tab.active {
+  background: rgba(127, 200, 255, 0.2);
+  color: #7fc8ff;
+  border-color: #7fc8ff;
+}
+
+.monthly-explain {
+  margin: 0 0 10px;
+  font-size: 0.75rem;
+  color: #9aa4b2;
+  text-align: center;
+}
+
 .leaderboard h2 {
   margin: 0 0 10px;
   font-size: 1.1rem;

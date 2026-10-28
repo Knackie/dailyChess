@@ -23,6 +23,18 @@ export interface StatsResponse {
   currentStreak: number;
 }
 
+export interface MonthlyEntry {
+  pseudo: string;
+  points: number;
+  daysPlayed: number;
+}
+
+export interface MonthlyResponse {
+  year: number;
+  month: number;
+  entries: MonthlyEntry[];
+}
+
 export async function submitScore(day: number, pseudo: string, timeMs: number, attempts: number): Promise<void> {
   if (!hasBackend) return;
   try {
@@ -53,6 +65,17 @@ export async function fetchStats(pseudo: string, today: number): Promise<StatsRe
     const res = await fetch(`${API_URL}/stats?pseudo=${encodeURIComponent(pseudo)}&today=${today}`);
     if (!res.ok) return null;
     return (await res.json()) as StatsResponse;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchMonthly(year: number, month: number): Promise<MonthlyResponse | null> {
+  if (!hasBackend) return null;
+  try {
+    const res = await fetch(`${API_URL}/monthly?year=${year}&month=${month}`);
+    if (!res.ok) return null;
+    return (await res.json()) as MonthlyResponse;
   } catch {
     return null;
   }

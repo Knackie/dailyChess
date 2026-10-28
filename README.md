@@ -14,10 +14,13 @@ Inspiré du concept « défi quotidien identique pour tout le monde, résultat p
 
 ## Classement (backend)
 
-Le classement quotidien et les statistiques personnelles (meilleur temps, série en cours, etc.) sont servis par
-un petit backend gratuit : un [Cloudflare Worker](https://workers.cloudflare.com/) + une base
-[D1](https://developers.cloudflare.com/d1/) (SQLite serverless), le tout dans [`worker/`](worker). Le site reste
-jouable sans ce backend (le classement est simplement masqué si `VITE_API_URL` n'est pas défini).
+Le classement quotidien, le classement mensuel par points et les statistiques personnelles (meilleur temps, série
+en cours, etc.) sont servis par un petit backend gratuit : un [Cloudflare Worker](https://workers.cloudflare.com/)
++ une base [D1](https://developers.cloudflare.com/d1/) (SQLite serverless), le tout dans [`worker/`](worker). Le
+site reste jouable sans ce backend (le classement est simplement masqué si `VITE_API_URL` n'est pas défini).
+
+Le classement mensuel attribue des points à chaque puzzle quotidien résolu : le 1ᵉʳ du jour gagne autant de points
+qu'il y a de joueurs ce jour-là, le 2ᵉ un point de moins, etc. Les points sont cumulés sur tout le mois calendaire.
 
 ### Déployer le backend
 

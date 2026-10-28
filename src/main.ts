@@ -4,7 +4,7 @@ import { dayNumber, todayKey, puzzleIndexForDay } from "./daily";
 import { loadResult, saveResult, loadPseudo, savePseudo, type DailyResult } from "./storage";
 import { Board, type MoveAttempt } from "./board";
 import { Timer, formatMs } from "./timer";
-import { hasBackend, submitScore, fetchLeaderboard, fetchStats, type LeaderboardEntry } from "./api";
+import { hasBackend, submitScore, fetchLeaderboard, fetchStats, fetchMonthly, type LeaderboardEntry, type MonthlyEntry } from "./api";
 import { estimateDifficulty } from "./difficulty";
 import "./style.css";
 
@@ -19,6 +19,10 @@ const PSEUDO_PATTERN = /^[\p{L}\p{N} _-]{1,20}$/u;
 
 const SITE_URL = "https://knackie.github.io/dailyChess/";
 const WRONG_MOVE_PENALTY_MS = 3000;
+const MONTH_NAMES_FR = [
+  "janvier", "février", "mars", "avril", "mai", "juin",
+  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
+];
 
 const app = document.querySelector<HTMLDivElement>("#app")!;
 
@@ -56,9 +60,20 @@ app.innerHTML = `
         <button id="share-button" class="share-button">Copier le résultat 📋</button>
       </div>
       <section class="leaderboard" id="leaderboard" hidden>
-        <h2>🏆 Classement du jour</h2>
-        <ol class="leaderboard-list" id="leaderboard-list"></ol>
-        <p class="player-stats" id="player-stats"></p>
+        <div class="leaderboard-tabs">
+          <button type="button" class="leaderboard-tab active" id="tab-daily">📅 Jour</button>
+          <button type="button" class="leaderboard-tab" id="tab-monthly">🗓️ Mois</button>
+        </div>
+        <div id="daily-panel">
+          <h2>🏆 Classement du jour</h2>
+          <ol class="leaderboard-list" id="leaderboard-list"></ol>
+          <p class="player-stats" id="player-stats"></p>
+        </div>
+        <div id="monthly-panel" hidden>
+          <h2 id="monthly-title">🏆 Classement du mois</h2>
+          <p class="monthly-explain">Chaque jour, le 1ᵉʳ gagne autant de points qu'il y a de joueurs, le 2ᵉ un point de moins, etc. Les points sont cumulés sur tout le mois.</p>
+          <ol class="leaderboard-list" id="monthly-list"></ol>
+        </div>
       </section>
     </section>
   </main>
@@ -78,6 +93,12 @@ const shareButton = document.querySelector<HTMLButtonElement>("#share-button")!;
 const leaderboardEl = document.querySelector<HTMLElement>("#leaderboard")!;
 const leaderboardListEl = document.querySelector<HTMLOListElement>("#leaderboard-list")!;
 const playerStatsEl = document.querySelector<HTMLParagraphElement>("#player-stats")!;
+const tabDailyButton = document.querySelector<HTMLButtonElement>("#tab-daily")!;
+const tabMonthlyButton = document.querySelector<HTMLButtonElement>("#tab-monthly")!;
+const dailyPanelEl = document.querySelector<HTMLElement>("#daily-panel")!;
+const monthlyPanelEl = document.querySelector<HTMLElement>("#monthly-panel")!;
+const monthlyTitleEl = document.querySelector<HTMLHeadingElement>("#monthly-title")!;
+const monthlyListEl = document.querySelector<HTMLOListElement>("#monthly-list")!;
 
 const existingResult = loadResult(dayKey);
 const savedPseudo = loadPseudo();
@@ -157,9 +178,62 @@ async function loadAndShowLeaderboard(pseudo: string | null): Promise<void> {
   }
 }
 
+function renderMonthly(entries: MonthlyEntry[], pseudo: string | null): void {
+  monthlyListEl.innerHTML = "";
+  if (entries.length === 0) {
+    monthlyListEl.innerHTML = "<li>Aucun score ce mois-ci pour l'instant.</li>";
+    return;
+  }
+  entries.forEach((entry, index) => {
+    const li = document.createElement("li");
+    li.className = "leaderboard-entry";
+    if (pseudo && entry.pseudo === pseudo) li.classList.add("me");
+    const rank = index + 1;
+    const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `${rank}.`;
+    const pointsLabel = entry.points === 1 ? "1 point" : `${entry.points} points`;
+    const daysLabel = entry.daysPlayed === 1 ? "1 jour joué" : `${entry.daysPlayed} jours joués`;
+    li.textContent = `${medal} ${entry.pseudo} — ${pointsLabel} (${daysLabel})`;
+    monthlyListEl.appendChild(li);
+  });
+}
+
+let monthlyLoaded = false;
+
+async function loadAndShowMonthly(pseudo: string | null): Promise<void> {
+  if (!hasBackend || monthlyLoaded) return;
+  monthlyLoaded = true;
+  monthlyListEl.innerHTML = "<li>Chargement…</li>";
+  monthlyTitleEl.textContent = `🏆 Classement de ${MONTH_NAMES_FR[today.getMonth()]} ${today.getFullYear()}`;
+
+  const monthly = await fetchMonthly(today.getFullYear(), today.getMonth() + 1);
+  if (monthly) {
+    renderMonthly(monthly.entries, pseudo);
+  } else {
+    monthlyListEl.innerHTML = "<li>Classement indisponible pour le moment.</li>";
+    monthlyLoaded = false; // on retentera si l'utilisateur rouvre l'onglet
+  }
+}
+
+function setupLeaderboardTabs(pseudo: string | null): void {
+  tabDailyButton.addEventListener("click", () => {
+    tabDailyButton.classList.add("active");
+    tabMonthlyButton.classList.remove("active");
+    dailyPanelEl.hidden = false;
+    monthlyPanelEl.hidden = true;
+  });
+  tabMonthlyButton.addEventListener("click", () => {
+    tabMonthlyButton.classList.add("active");
+    tabDailyButton.classList.remove("active");
+    dailyPanelEl.hidden = true;
+    monthlyPanelEl.hidden = false;
+    void loadAndShowMonthly(pseudo);
+  });
+}
+
 function startGame(pseudo: string | null): void {
   startScreenEl.hidden = true;
   gameScreenEl.hidden = false;
+  setupLeaderboardTabs(pseudo);
 
   if (existingResult) {
     statusEl.textContent = "Puzzle du jour déjà résolu, revenez demain pour le prochain !";

@@ -1,10 +1,10 @@
 import { Chess } from "chess.js";
 import puzzlesData from "./puzzles.json";
 import { dayNumber, todayKey, puzzleIndexForDay } from "./daily";
-import { loadResult, saveResult, loadPseudo, savePseudo, type DailyResult } from "./storage";
+import { loadResult, saveResult, loadPseudo, savePseudo, getOrCreateDeviceToken, type DailyResult } from "./storage";
 import { Board, type MoveAttempt } from "./board";
 import { Timer, formatMs } from "./timer";
-import { hasBackend, submitScore, fetchLeaderboard, fetchStats, fetchMonthly, type LeaderboardEntry, type MonthlyEntry } from "./api";
+import { hasBackend, submitScore, fetchLeaderboard, fetchStats, fetchMonthly, claimPseudo, type LeaderboardEntry, type MonthlyEntry } from "./api";
 import { estimateDifficulty } from "./difficulty";
 import "./style.css";
 
@@ -102,6 +102,7 @@ const monthlyListEl = document.querySelector<HTMLOListElement>("#monthly-list")!
 
 const existingResult = loadResult(dayKey);
 const savedPseudo = loadPseudo();
+const deviceToken = getOrCreateDeviceToken();
 if (savedPseudo) pseudoInput.value = savedPseudo;
 if (!hasBackend) {
   startScreenEl.querySelectorAll(".pseudo-label, .pseudo-input").forEach((el) => {
@@ -122,9 +123,17 @@ function shareText(result: DailyResult): string {
   ].join("\n");
 }
 
+// Même contenu que shareText(), mais sans l'URL : affichée à l'écran, l'URL
+// n'apporte rien (elle n'est pas cliquable) et fait inutilement déborder le
+// texte sur plusieurs lignes en mobile. Elle reste dans le texte copié.
+function inlineResultText(result: DailyResult): string {
+  const attemptsLabel = result.attempts === 1 ? "1 essai" : `${result.attempts} essais`;
+  return `⏱️ Mat trouvé en ${formatMs(result.timeMs)} (${attemptsLabel})`;
+}
+
 function showResult(result: DailyResult): void {
   resultEl.hidden = false;
-  resultTextEl.textContent = shareText(result).replace(/\n/g, " · ");
+  resultTextEl.textContent = inlineResultText(result);
   shareButton.onclick = async () => {
     const text = shareText(result);
     try {
@@ -284,7 +293,7 @@ function startGame(pseudo: string | null): void {
         statusEl.textContent = `🎉 Mat trouvé en ${formatMs(timeMs)} !`;
         showResult(result);
         if (pseudo) {
-          void submitScore(dayNum, pseudo, timeMs, attempts).then(() => loadAndShowLeaderboard(pseudo));
+          void submitScore(dayNum, pseudo, timeMs, attempts, deviceToken).then(() => loadAndShowLeaderboard(pseudo));
         } else {
           void loadAndShowLeaderboard(null);
         }
@@ -304,12 +313,13 @@ function startGame(pseudo: string | null): void {
 }
 
 let gameStarted = false;
+let checkingPseudo = false;
 
 startButton.addEventListener("click", () => {
   // Garde-fou en plus du CSS : même si l'écran de démarrage redevenait
   // visible/cliquable par erreur, on ignore tout second clic pour empêcher
   // de relancer le chronomètre à zéro après avoir déjà vu le puzzle.
-  if (gameStarted) return;
+  if (gameStarted || checkingPseudo) return;
 
   if (!hasBackend) {
     gameStarted = true;
@@ -318,11 +328,27 @@ startButton.addEventListener("click", () => {
   }
   const pseudo = pseudoInput.value.trim();
   if (!PSEUDO_PATTERN.test(pseudo)) {
+    pseudoErrorEl.textContent = "Pseudo invalide (1 à 20 caractères, lettres/chiffres).";
     pseudoErrorEl.hidden = false;
     return;
   }
   pseudoErrorEl.hidden = true;
-  savePseudo(pseudo);
-  gameStarted = true;
-  startGame(pseudo);
+
+  checkingPseudo = true;
+  startButton.disabled = true;
+  void claimPseudo(pseudo, deviceToken).then((claim) => {
+    checkingPseudo = false;
+    startButton.disabled = false;
+
+    if (claim && !claim.ok) {
+      pseudoErrorEl.textContent = "Ce pseudo est déjà pris par un autre joueur, choisis-en un autre.";
+      pseudoErrorEl.hidden = false;
+      return;
+    }
+
+    // claim === null : backend injoignable, on ne bloque pas le joueur.
+    savePseudo(pseudo);
+    gameStarted = true;
+    startGame(pseudo);
+  });
 });

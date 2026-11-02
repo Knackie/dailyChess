@@ -35,16 +35,46 @@ export interface MonthlyResponse {
   entries: MonthlyEntry[];
 }
 
-export async function submitScore(day: number, pseudo: string, timeMs: number, attempts: number): Promise<void> {
+export async function submitScore(
+  day: number,
+  pseudo: string,
+  timeMs: number,
+  attempts: number,
+  token: string
+): Promise<void> {
   if (!hasBackend) return;
   try {
     await fetch(`${API_URL}/score`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ day, pseudo, timeMs, attempts }),
+      body: JSON.stringify({ day, pseudo, timeMs, attempts, token }),
     });
   } catch {
     // Pas de backend joignable : on ignore silencieusement, le jeu reste jouable.
+  }
+}
+
+/**
+ * Vérifie qu'un pseudo est libre ou appartient déjà à cet appareil (via le
+ * jeton local), et le réclame le cas échéant. `ok: false` signifie que le
+ * pseudo est déjà utilisé par un autre appareil ; l'appelant doit alors
+ * demander à l'utilisateur d'en choisir un autre plutôt que d'écraser son
+ * score. En cas d'erreur réseau/serveur, on retourne `null` et on laisse
+ * l'utilisateur continuer (on ne bloque pas le jeu si le backend a un souci).
+ */
+export async function claimPseudo(pseudo: string, token: string): Promise<{ ok: boolean } | null> {
+  if (!hasBackend) return null;
+  try {
+    const res = await fetch(`${API_URL}/claim-pseudo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pseudo, token }),
+    });
+    if (res.status === 409) return { ok: false };
+    if (!res.ok) return null;
+    return (await res.json()) as { ok: boolean };
+  } catch {
+    return null;
   }
 }
 

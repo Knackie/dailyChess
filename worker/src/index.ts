@@ -46,11 +46,68 @@ function sanitizePseudo(raw: unknown): string | null {
   return trimmed;
 }
 
+function sanitizeToken(raw: unknown): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (trimmed.length < 8 || trimmed.length > 200) return null;
+  return trimmed;
+}
+
+async function hashToken(token: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * Réclame le pseudo pour ce jeton s'il est encore libre, ou vérifie qu'il
+ * appartient déjà à ce même jeton. Retourne false si le pseudo appartient à
+ * un autre appareil (autre jeton), auquel cas l'appelant doit refuser la
+ * requête plutôt que d'écraser le score de quelqu'un d'autre.
+ */
+async function claimOrVerifyPseudo(pseudo: string, token: string, env: Env): Promise<boolean> {
+  const tokenHash = await hashToken(token);
+  const existing = await env.DB.prepare("SELECT token_hash FROM players WHERE pseudo = ?")
+    .bind(pseudo)
+    .first<{ token_hash: string }>();
+
+  if (!existing) {
+    await env.DB.prepare(
+      "INSERT INTO players (pseudo, token_hash) VALUES (?, ?) ON CONFLICT (pseudo) DO NOTHING"
+    )
+      .bind(pseudo, tokenHash)
+      .run();
+    return true;
+  }
+  return existing.token_hash === tokenHash;
+}
+
 interface ScorePayload {
   day: number;
   pseudo: string;
   timeMs: number;
   attempts: number;
+  token: string;
+}
+
+async function handleClaimPseudo(request: Request, env: Env): Promise<Response> {
+  let body: { pseudo?: unknown; token?: unknown };
+  try {
+    body = await request.json();
+  } catch {
+    return json({ error: "JSON invalide" }, env, 400);
+  }
+
+  const pseudo = sanitizePseudo(body.pseudo);
+  const token = sanitizeToken(body.token);
+  if (!pseudo) {
+    return json({ error: "pseudo invalide" }, env, 400);
+  }
+  if (!token) {
+    return json({ error: "token invalide" }, env, 400);
+  }
+
+  const owns = await claimOrVerifyPseudo(pseudo, token, env);
+  return json({ ok: owns }, env, owns ? 200 : 409);
 }
 
 async function handleSubmitScore(request: Request, env: Env): Promise<Response> {
@@ -65,6 +122,7 @@ async function handleSubmitScore(request: Request, env: Env): Promise<Response> 
   const pseudo = sanitizePseudo(body.pseudo);
   const timeMs = Number(body.timeMs);
   const attempts = Number(body.attempts);
+  const token = sanitizeToken(body.token);
 
   if (!Number.isInteger(day) || day <= 0) {
     return json({ error: "day invalide" }, env, 400);
@@ -77,6 +135,17 @@ async function handleSubmitScore(request: Request, env: Env): Promise<Response> 
   }
   if (!Number.isInteger(attempts) || attempts <= 0 || attempts > MAX_ATTEMPTS) {
     return json({ error: "attempts invalide" }, env, 400);
+  }
+  if (!token) {
+    return json({ error: "token invalide" }, env, 400);
+  }
+
+  // Empêche qu'un visiteur tapant le pseudo de quelqu'un d'autre écrase son
+  // score : le pseudo doit appartenir au même jeton d'appareil (ou être
+  // encore libre, auquel cas il est réclamé ici).
+  const owns = await claimOrVerifyPseudo(pseudo, token, env);
+  if (!owns) {
+    return json({ error: "Ce pseudo est déjà pris par un autre appareil" }, env, 409);
   }
 
   // On ne garde que le meilleur score (temps le plus court) par joueur et par jour.
@@ -214,6 +283,9 @@ export default {
 
     if (url.pathname === "/score" && request.method === "POST") {
       return handleSubmitScore(request, env);
+    }
+    if (url.pathname === "/claim-pseudo" && request.method === "POST") {
+      return handleClaimPseudo(request, env);
     }
     if (url.pathname === "/leaderboard" && request.method === "GET") {
       return handleLeaderboard(url, env);

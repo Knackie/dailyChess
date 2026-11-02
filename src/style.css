@@ -216,9 +216,13 @@ body {
 }
 
 .status {
+  width: 100%;
   font-size: 1.1rem;
   min-height: 1.4em;
   text-align: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .status.shake {
@@ -369,11 +373,15 @@ body {
 }
 
 .result {
+  width: 100%;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 16px;
 }
 
 .share-button {
@@ -389,4 +397,35 @@ body {
 
 .share-button:hover {
   background: #9dd6ff;
+}
+
+/* Écrans de téléphone : on resserre les marges/espacements pour que plus de
+   contenu tienne sans scroll excessif, et on réduit légèrement les titres. */
+@media (max-width: 480px) {
+  body {
+    padding: 14px 8px;
+  }
+
+  .app {
+    gap: 12px;
+  }
+
+  .header h1 {
+    font-size: 1.3rem;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+  }
+
+  .start-screen,
+  .leaderboard,
+  .result {
+    padding: 12px;
+  }
+
+  .status {
+    padding: 8px 12px;
+    font-size: 1rem;
+  }
 }

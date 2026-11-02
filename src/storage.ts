@@ -32,3 +32,20 @@ export function loadPseudo(): string | null {
 export function savePseudo(pseudo: string): void {
   localStorage.setItem(PSEUDO_KEY, pseudo);
 }
+
+const DEVICE_TOKEN_KEY = "echec-du-jour:device-token";
+
+/**
+ * Jeton anonyme propre à cet appareil/navigateur, généré une seule fois et
+ * conservé dans localStorage. Il sert à "réclamer" un pseudo auprès du
+ * backend (voir api.ts: claimPseudo) pour empêcher qu'un autre visiteur
+ * tapant le même pseudo puisse écraser son score.
+ */
+export function getOrCreateDeviceToken(): string {
+  let token = localStorage.getItem(DEVICE_TOKEN_KEY);
+  if (!token) {
+    token = crypto.randomUUID();
+    localStorage.setItem(DEVICE_TOKEN_KEY, token);
+  }
+  return token;
+}

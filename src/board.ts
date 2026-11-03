@@ -1,16 +1,8 @@
-import type { Chess, Square, PieceSymbol, Color } from "chess.js";
+import type { Chess, Square, Color } from "chess.js";
+import { pieceSvgMarkup } from "./pieceIcons";
 
 const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const RANKS = ["1", "2", "3", "4", "5", "6", "7", "8"];
-
-// On utilise les glyphes "pleins" pour les deux couleurs : les glyphes Unicode
-// "blancs" (♔♕♖♗♘♙) sont de simples contours creux dans beaucoup de polices,
-// ce qui rend les pièces blanches quasi transparentes. On préfère donc colorer
-// en CSS les mêmes glyphes pleins plutôt que de changer de famille de symbole.
-const PIECE_GLYPHS: Record<Color, Record<PieceSymbol, string>> = {
-  w: { p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚" },
-  b: { p: "♟", n: "♞", b: "♝", r: "♜", q: "♛", k: "♚" },
-};
 
 export interface MoveAttempt {
   from: Square;
@@ -125,10 +117,17 @@ export class Board {
     const pieceEl = squareEl?.querySelector(".piece-glyph") as HTMLElement | null;
     if (!squareEl || !pieceEl) return;
 
-    const ghost = document.createElement("span");
-    ghost.className = pieceEl.className + " piece-ghost";
-    ghost.textContent = pieceEl.textContent;
-    ghost.style.fontSize = getComputedStyle(squareEl).fontSize;
+    // On clone l'élément réel (avec son SVG) plutôt que de recréer un glyphe
+    // texte : plus simple à maintenir, et garantit un rendu identique au
+    // pion/pièce affiché sur l'échiquier. Comme le clone est détaché de la
+    // grille (position fixed sur <body>), on fige sa taille en pixels à
+    // partir de la taille réellement affichée, sinon les pourcentages CSS
+    // n'auraient plus de référence cohérente.
+    const pieceRect = pieceEl.getBoundingClientRect();
+    const ghost = pieceEl.cloneNode(true) as HTMLElement;
+    ghost.classList.add("piece-ghost");
+    ghost.style.width = `${pieceRect.width}px`;
+    ghost.style.height = `${pieceRect.height}px`;
     document.body.appendChild(ghost);
     pieceEl.classList.add("piece-dragging");
 
@@ -196,16 +195,11 @@ export class Board {
   private promptPromotion(onChoose: (piece: "q" | "r" | "b" | "n") => void): void {
     const overlay = document.createElement("div");
     overlay.className = "promotion-overlay";
-    const choices: Array<["q" | "r" | "b" | "n", string]> = [
-      ["q", "♕"],
-      ["r", "♖"],
-      ["b", "♗"],
-      ["n", "♘"],
-    ];
-    for (const [piece, glyph] of choices) {
+    const choices: Array<"q" | "r" | "b" | "n"> = ["q", "r", "b", "n"];
+    for (const piece of choices) {
       const button = document.createElement("button");
       button.className = "promotion-choice";
-      button.textContent = glyph;
+      button.innerHTML = pieceSvgMarkup(piece);
       button.addEventListener("click", () => {
         overlay.remove();
         onChoose(piece);
@@ -238,7 +232,7 @@ export class Board {
       if (piece) {
         const glyph = document.createElement("span");
         glyph.className = `piece-glyph ${piece.color === "w" ? "piece-white" : "piece-black"}`;
-        glyph.textContent = PIECE_GLYPHS[piece.color][piece.type];
+        glyph.innerHTML = pieceSvgMarkup(piece.type);
         squareEl.appendChild(glyph);
       }
 

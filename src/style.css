@@ -298,8 +298,6 @@ body {
   width: 100%;
   height: 100%;
   display: block;
-  stroke-linejoin: round;
-  stroke-linecap: round;
 }
 
 .piece-ghost {
@@ -311,31 +309,14 @@ body {
   z-index: 50;
 }
 
-/* La couleur des pièces est portée par l'attribut CSS fill/stroke (hérité par
-   tous les éléments de forme du SVG), pas par la couleur du texte : ce
-   rendu vectoriel est strictement identique sur toutes les plateformes,
-   contrairement aux anciens glyphes Unicode dont l'affichage (couleur et
-   taille) dépendait de la police du système (problèmes observés sur Android
-   et iOS). */
-.piece-glyph.piece-white .piece-icon {
-  fill: #fff;
-  stroke: #000;
-  stroke-width: 1.2;
-}
-
-.piece-glyph.piece-black .piece-icon {
-  fill: #1a1a1a;
-  stroke: #fff;
-  stroke-width: 1;
-}
-
-.piece-glyph.piece-white .piece-accent {
-  fill: #000;
-}
-
-.piece-glyph.piece-black .piece-accent {
-  fill: #fff;
-}
+/* Les couleurs (fill/stroke) sont définies directement dans le balisage SVG
+   de chaque pièce (voir pieceIcons.ts), pas en CSS : ce rendu vectoriel est
+   strictement identique sur toutes les plateformes, contrairement aux
+   anciens glyphes Unicode dont l'affichage (couleur et taille) dépendait de
+   la police du système (problèmes observés sur Android et iOS). On évite
+   volontairement toute règle CSS fill/stroke ici : une règle de feuille de
+   style l'emporterait sur les attributs de présentation du SVG et écraserait
+   les détails bicolores (ex. l'œil du cavalier, les décors de la dame). */
 
 .square.selected {
   outline: 3px solid #7fc8ff;
@@ -384,7 +365,7 @@ body {
 .promotion-choice {
   width: 44px;
   height: 44px;
-  background: #1e2530;
+  background: #e8d9bd;
   border: 2px solid #7fc8ff;
   border-radius: 8px;
   padding: 6px;
@@ -394,15 +375,6 @@ body {
 .promotion-choice .piece-icon {
   width: 100%;
   height: 100%;
-  fill: #fff;
-  stroke: #000;
-  stroke-width: 1.2;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-
-.promotion-choice .piece-accent {
-  fill: #000;
 }
 
 .result {

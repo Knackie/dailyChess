@@ -77,10 +77,11 @@ export class Board {
 
   private attemptMove(from: Square, to: Square): void {
     const needsPromotion = this.legalTargets.get(to);
+    const movingColor = this.chess.get(from)?.color ?? this.chess.turn();
     this.selected = null;
     this.legalTargets.clear();
     if (needsPromotion) {
-      this.promptPromotion((promotion) => {
+      this.promptPromotion(movingColor, (promotion) => {
         this.onAttempt({ from, to, promotion });
         this.render();
       });
@@ -192,14 +193,14 @@ export class Board {
     this.dragState = null;
   }
 
-  private promptPromotion(onChoose: (piece: "q" | "r" | "b" | "n") => void): void {
+  private promptPromotion(color: Color, onChoose: (piece: "q" | "r" | "b" | "n") => void): void {
     const overlay = document.createElement("div");
     overlay.className = "promotion-overlay";
     const choices: Array<"q" | "r" | "b" | "n"> = ["q", "r", "b", "n"];
     for (const piece of choices) {
       const button = document.createElement("button");
       button.className = "promotion-choice";
-      button.innerHTML = pieceSvgMarkup(piece);
+      button.innerHTML = pieceSvgMarkup(color, piece);
       button.addEventListener("click", () => {
         overlay.remove();
         onChoose(piece);
@@ -232,7 +233,7 @@ export class Board {
       if (piece) {
         const glyph = document.createElement("span");
         glyph.className = `piece-glyph ${piece.color === "w" ? "piece-white" : "piece-black"}`;
-        glyph.innerHTML = pieceSvgMarkup(piece.type);
+        glyph.innerHTML = pieceSvgMarkup(piece.color, piece.type);
         squareEl.appendChild(glyph);
       }
 

@@ -61,3 +61,9 @@ node scripts/generate-puzzles.mjs
 Le site est statique (aucun backend) et se déploie automatiquement sur GitHub Pages via
 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) à chaque push sur `main`. Pensez à activer
 GitHub Pages avec la source « GitHub Actions » dans les réglages du dépôt.
+
+## Crédits
+
+Les icônes des pièces (`src/pieceIcons.ts`) sont le jeu **« cburnett »** par Colin M.L. Burnett, repris du dépôt
+public [lichess-org/lila](https://github.com/lichess-org/lila) (également utilisé par Wikipedia), sous licence
+libre au choix parmi CC BY-SA 3.0 / GFDL / BSD / GPL.

@@ -36,6 +36,37 @@ npm run deploy                     # déploie le Worker, affiche son URL (https:
 Renseigner ensuite cette URL dans la variable `VITE_API_URL` au moment du build du frontend (voir
 [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)).
 
+### Bot WhatsApp (top 3 de la veille, chaque matin)
+
+Un déclencheur planifié (Cron Trigger Cloudflare) tourne chaque jour et poste le top 3 de la veille dans un
+groupe WhatsApp, à 8h heure de Paris (été comme hiver, sans réglage à changer). Désactivé par défaut : tant que
+les variables ci-dessous ne sont pas définies, le Worker ne tente rien.
+
+L'envoi passe par [Green-API](https://green-api.com/) (service tiers, car l'API officielle de WhatsApp ne permet
+pas de poster dans un groupe). Le plan gratuit **« Developer »** (jusqu'à 3 discussions) suffit pour un seul
+groupe.
+
+1. Créer un compte sur [console.green-api.com](https://console.green-api.com), créer une instance **Developer**
+   (gratuite).
+2. Dans WhatsApp sur le téléphone qui servira de « bot » (ton propre numéro, par exemple) : `Appareils liés` →
+   `Lier un appareil`, puis scanner le QR code affiché dans la console Green-API pour cette instance.
+3. Relever dans la console les 3 valeurs `apiUrl`, `idInstance` et `apiTokenInstance` de l'instance.
+4. Retrouver l'identifiant du groupe cible (`chatId`, de la forme `xxxxxxxxxxxxxxxxx@g.us`) en appelant une fois :
+   `GET {apiUrl}/waInstance{idInstance}/getChats/{apiTokenInstance}` et en repérant le groupe par son nom dans
+   la réponse.
+5. Déclarer ces 4 valeurs comme secrets du Worker (jamais commitées) :
+   ```bash
+   cd worker
+   npx wrangler secret put GREEN_API_URL             # ex: https://1234.api.green-api.com
+   npx wrangler secret put GREEN_API_ID_INSTANCE
+   npx wrangler secret put GREEN_API_TOKEN
+   npx wrangler secret put GREEN_API_GROUP_CHAT_ID    # ex: 120363043968066561@g.us
+   npm run deploy
+   ```
+
+Le message est envoyé par le téléphone lié (il doit rester allumé et connecté à Internet). Aucune donnée
+supplémentaire n'est stockée : le message est reconstruit à la volée à partir du classement du jour déjà en base.
+
 ## Développement
 
 ```bash

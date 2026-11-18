@@ -16,3 +16,10 @@ database_id = "5b849d80-9049-4af8-9230-b409f0293cbf"
 # Origine autorisée à appeler l'API. L'API est publique (lecture/écriture de scores, sans
 # authentification ni cookie), "*" est donc suffisant et simplifie les tests locaux.
 ALLOW_ORIGIN = "*"
+
+# Tourne à 6h, 7h, 8h et 9h UTC chaque jour : couvre 8h heure de Paris été comme
+# hiver sans avoir à gérer le changement d'heure dans la config. Le handler
+# scheduled() ne fait réellement quelque chose que lorsque l'heure murale à
+# Paris (calculée dans le code) est exactement 8h.
+[triggers]
+crons = ["0 6-9 * * *"]

@@ -1,6 +1,12 @@
 export interface Env {
   DB: D1Database;
   ALLOW_ORIGIN: string;
+  // Optionnels : laissés non définis tant que le bot WhatsApp n'est pas configuré,
+  // auquel cas le déclenchement planifié ne fait rien (voir scheduled() plus bas).
+  GREEN_API_URL?: string;
+  GREEN_API_ID_INSTANCE?: string;
+  GREEN_API_TOKEN?: string;
+  GREEN_API_GROUP_CHAT_ID?: string;
 }
 
 const MAX_PSEUDO_LENGTH = 20;
@@ -20,6 +26,35 @@ function dayRangeForMonth(year: number, month: number): { dayMin: number; dayMax
   const dayMin = Math.floor((monthStart - LAUNCH_DATE_UTC) / DAY_MS) + 1;
   const dayMax = Math.floor((nextMonthStart - LAUNCH_DATE_UTC) / DAY_MS);
   return { dayMin: Math.max(1, dayMin), dayMax: Math.max(1, dayMax) };
+}
+
+/** Année/mois/jour/heure "muraux" dans le fuseau donné, pour une date donnée. */
+function wallClockParts(date: Date, timeZone: string): { year: number; month: number; day: number; hour: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    hour12: false,
+  }).formatToParts(date);
+  const get = (type: string) => Number(parts.find((p) => p.type === type)?.value ?? "0");
+  // hour12:false peut renvoyer "24" pour minuit selon les moteurs JS : on le ramène à 0.
+  return { year: get("year"), month: get("month"), day: get("day"), hour: get("hour") % 24 };
+}
+
+/**
+ * Numéro de puzzle ("day") correspondant à la date du jour dans le fuseau donné.
+ * Reprend exactement le calcul de dayNumber() côté frontend (src/daily.ts), en
+ * remplaçant la date locale du navigateur par la date murale dans ce fuseau :
+ * pour un club basé en France, c'est cette date-là qui doit déterminer le
+ * puzzle "du jour" envoyé par le bot, indépendamment du fuseau du serveur.
+ */
+function dayNumberInTimeZone(date: Date, timeZone: string): number {
+  const { year, month, day } = wallClockParts(date, timeZone);
+  const localMidnightUtc = Date.UTC(year, month - 1, day);
+  const diffDays = Math.floor((localMidnightUtc - LAUNCH_DATE_UTC) / DAY_MS);
+  return Math.max(0, diffDays) + 1;
 }
 
 function corsHeaders(env: Env): Record<string, string> {
@@ -273,6 +308,73 @@ async function handleStats(url: URL, env: Env): Promise<Response> {
   );
 }
 
+function formatSeconds(ms: number): string {
+  return (ms / 1000).toFixed(2) + "s";
+}
+
+const CLUB_TIME_ZONE = "Europe/Paris";
+const DAILY_MEDALS = ["🥇", "🥈", "🥉"];
+
+/** Construit le message WhatsApp du top 3 de la veille pour le puzzle `day`. */
+async function buildDailyTopMessage(day: number, env: Env): Promise<string> {
+  const { results } = await env.DB.prepare(
+    "SELECT pseudo, time_ms as timeMs, attempts FROM scores WHERE day = ? ORDER BY time_ms ASC, attempts ASC LIMIT 3"
+  )
+    .bind(day)
+    .all<{ pseudo: string; timeMs: number; attempts: number }>();
+
+  const entries = results ?? [];
+  if (entries.length === 0) {
+    return `♟️ Échec du Jour #${day}\nPersonne n'a résolu le puzzle d'hier 😢`;
+  }
+
+  const lines = entries.map((entry, index) => {
+    const attemptsLabel = entry.attempts === 1 ? "1 essai" : `${entry.attempts} essais`;
+    return `${DAILY_MEDALS[index]} ${entry.pseudo} — ${formatSeconds(entry.timeMs)} (${attemptsLabel})`;
+  });
+
+  return [`♟️ Échec du Jour #${day} — Top 3 d'hier`, ...lines].join("\n");
+}
+
+/** Envoie un message texte dans le groupe WhatsApp configuré, via Green-API. */
+async function sendWhatsAppMessage(message: string, env: Env): Promise<void> {
+  if (!env.GREEN_API_URL || !env.GREEN_API_ID_INSTANCE || !env.GREEN_API_TOKEN || !env.GREEN_API_GROUP_CHAT_ID) {
+    console.log("Bot WhatsApp non configuré (variables GREEN_API_* manquantes), envoi ignoré.");
+    return;
+  }
+
+  const url = `${env.GREEN_API_URL.replace(/\/$/, "")}/waInstance${env.GREEN_API_ID_INSTANCE}/sendMessage/${env.GREEN_API_TOKEN}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chatId: env.GREEN_API_GROUP_CHAT_ID, message }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    console.log(`Échec d'envoi WhatsApp (${response.status}): ${body}`);
+  }
+}
+
+/**
+ * Déclenché par le Cron Trigger (voir wrangler.toml), programmé pour tourner
+ * à plusieurs heures UTC couvrant 8h heure de Paris été comme hiver. On ne
+ * fait réellement quelque chose que lorsque l'heure murale à Paris est bien
+ * 8h, ce qui évite d'avoir à gérer le changement d'heure été/hiver à la main.
+ */
+async function handleScheduled(env: Env): Promise<void> {
+  const now = new Date();
+  const { hour } = wallClockParts(now, CLUB_TIME_ZONE);
+  if (hour !== 8) return;
+
+  const today = dayNumberInTimeZone(now, CLUB_TIME_ZONE);
+  const yesterday = today - 1;
+  if (yesterday < 1) return;
+
+  const message = await buildDailyTopMessage(yesterday, env);
+  await sendWhatsAppMessage(message, env);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
@@ -298,5 +400,9 @@ export default {
     }
 
     return json({ error: "Not found" }, env, 404);
+  },
+
+  async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(handleScheduled(env));
   },
 };
